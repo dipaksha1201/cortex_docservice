@@ -5,6 +5,7 @@ __pycache__/
 # Ignore virtual environment directories
 venv/
 .env/
+.env
 
 # Ignore system files
 .DS_Store
@@ -27,4 +28,9 @@ build/
 # Ignore specific files
 *.pvc
 run.py
-*.txt 
+*.txt
+
+# Ignore data files
+*.pkl
+*.bin 
+*.pklz

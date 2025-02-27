@@ -3,11 +3,11 @@ import os
 import asyncio
 from dataclasses import dataclass, field
 from itertools import chain
-from typing import Any, List, Literal, Optional, Tuple, Type, cast
+from typing import Any, List, Optional, Tuple, Type, cast
 
 import instructor
 import numpy as np
-from openai import APIConnectionError, AsyncAzureOpenAI, AsyncOpenAI, RateLimitError
+from openai import APIConnectionError, AsyncOpenAI, RateLimitError
 from pydantic import BaseModel
 from tenacity import (
     AsyncRetrying,
@@ -16,46 +16,34 @@ from tenacity import (
     stop_after_attempt,
     wait_exponential,
 )
+from dotenv import load_dotenv
 
 from cortex_ingestion._exceptions import LLMServiceNoResponseError
 from cortex_ingestion._types import BaseModelAlias
-from cortex_ingestion._utils import logger, throttle_async_func_call
+from cortex_ingestion._utils import logger
+from cortex_ingestion._utils import throttle_async_func_call
 
 from cortex_ingestion._llm._base import BaseEmbeddingService, BaseLLMService, T_model
 
-TIMEOUT_SECONDS = 180.0
-
+load_dotenv()  # Load environment variables from .env
 
 @dataclass
-class OpenAILLMService(BaseLLMService):
-    """LLM Service for OpenAI LLMs."""
+class GeminiLLMService(BaseLLMService):
+    """LLM Service for Gemini using OpenAI-compatible endpoint."""
 
-    model: Optional[str] = field(default="gpt-4o-mini")
+    model: Optional[str] = field(default="gemini-2.0-flash")
     mode: instructor.Mode = field(default=instructor.Mode.JSON)
-    client: Literal["openai", "azure"] = field(default="openai")
-    api_version: Optional[str] = field(default=None)
 
     def __post_init__(self):
-        if self.client == "azure":
-            assert (
-                self.base_url is not None and self.api_version is not None
-            ), "Azure OpenAI requires a base url and an api version."
-            self.llm_async_client = instructor.from_openai(
-                AsyncAzureOpenAI(
-                    azure_endpoint=self.base_url,
-                    api_key=self.api_key,
-                    api_version=self.api_version,
-                    timeout=TIMEOUT_SECONDS,
-                ),
-                mode=self.mode,
-            )
-        elif self.client == "openai":
-            self.llm_async_client = instructor.from_openai(
-                AsyncOpenAI(base_url=self.base_url, api_key=self.api_key, timeout=TIMEOUT_SECONDS), mode=self.mode
-            )
-        else:
-            raise ValueError("Invalid client type. Must be 'openai' or 'azure'")
-        logger.debug("Initialized OpenAILLMService with patched OpenAI client.")
+        self.llm_async_client = instructor.from_openai(
+            AsyncOpenAI(
+                api_key=os.getenv('GEMINI_API_KEY_BETA'),
+                base_url=os.getenv('GEMINI_BASE_URL'),
+                timeout=float(os.getenv('TIMEOUT_SECONDS', '180.0')),
+            ),
+            mode=self.mode,
+        )
+        logger.debug("Initialized Gemini service with OpenAI-compatible endpoint")
 
     @throttle_async_func_call(max_concurrent=int(os.getenv("CONCURRENT_TASK_LIMIT", 1024)), stagger_time=0.001, waiting_time=0.001)
     async def send_message(
@@ -67,23 +55,21 @@ class OpenAILLMService(BaseLLMService):
         response_model: Type[T_model] | None = None,
         **kwargs: Any,
     ) -> Tuple[T_model, list[dict[str, str]]]:
-        """Send a message to the language model and receive a response.
+        """Send a message to Gemini and receive a response.
 
         Args:
             prompt (str): The input message to send to the language model.
-            model (str): The name of the model to use. Defaults to the model provided in the config.
-            system_prompt (str, optional): The system prompt to set the context for the conversation. Defaults to None.
-            history_messages (list, optional): A list of previous messages in the conversation. Defaults to empty.
-            response_model (Type[T], optional): The Pydantic model to parse the response. Defaults to None.
-            **kwargs: Additional keyword arguments that may be required by specific LLM implementations.
+            model (str): The name of the model to use. Defaults to gemini-2.0-flash.
+            system_prompt (str, optional): The system prompt to set the context for the conversation.
+            history_messages (list, optional): A list of previous messages in the conversation.
+            response_model (Type[T], optional): The Pydantic model to parse the response.
+            **kwargs: Additional keyword arguments for the API call.
 
         Returns:
-            str: The response from the language model.
+            Tuple[T_model, list[dict[str, str]]]: The model response and conversation history.
         """
         logger.debug(f"Sending message with prompt: {prompt}")
-        model = model or self.model
-        if model is None:
-            raise ValueError("Model name must be provided.")
+        model = model or self.model or "gemini-2.0-flash"
         messages: list[dict[str, str]] = []
 
         if system_prompt:
@@ -107,8 +93,8 @@ class OpenAILLMService(BaseLLMService):
         )
 
         if not llm_response:
-            logger.error("No response received from the language model.")
-            raise LLMServiceNoResponseError("No response received from the language model.")
+            logger.error("No response received from Gemini.")
+            raise LLMServiceNoResponseError("No response received from Gemini.")
 
         messages.append(
             {
@@ -125,43 +111,32 @@ class OpenAILLMService(BaseLLMService):
 
 
 @dataclass
-class OpenAIEmbeddingService(BaseEmbeddingService):
-    """Base class for Language Model implementations."""
+class GeminiEmbeddingService(BaseEmbeddingService):
+    """Embedding Service for Gemini."""
 
-    embedding_dim: int = field(default=1536)
+    embedding_dim: int = field(default=768)  # Gemini's embedding dimension
     max_elements_per_request: int = field(default=32)
-    model: Optional[str] = field(default="text-embedding-3-small")
-    client: Literal["openai", "azure"] = field(default="openai")
-    api_version: Optional[str] = field(default=None)
+    model: Optional[str] = field(default="text-embedding-004")
 
     def __post_init__(self):
-        if self.client == "azure":
-            assert (
-                self.base_url is not None and self.api_version is not None
-            ), "Azure OpenAI requires a base url and an api version."
-            self.embedding_async_client = AsyncAzureOpenAI(
-                azure_endpoint=self.base_url, api_key=self.api_key, api_version=self.api_version
-            )
-        elif self.client == "openai":
-            self.embedding_async_client = AsyncOpenAI(base_url=self.base_url, api_key=self.api_key)
-        else:
-            raise ValueError("Invalid client type. Must be 'openai' or 'azure'")
-        logger.debug("Initialized OpenAIEmbeddingService with OpenAI client.")
+        self.embedding_async_client = AsyncOpenAI(
+            api_key=os.getenv('GEMINI_API_KEY_BETA'),
+            base_url=os.getenv('GEMINI_BASE_URL'),
+        )
+        logger.debug("Initialized Gemini embedding service")
 
     async def encode(self, texts: list[str], model: Optional[str] = None) -> np.ndarray[Any, np.dtype[np.float32]]:
         """Get the embedding representation of the input text.
 
         Args:
             texts (str): The input text to embed.
-            model (str, optional): The name of the model to use. Defaults to the model provided in the config.
+            model (str, optional): The name of the model to use.
 
         Returns:
-            list[float]: The embedding vector as a list of floats.
+            np.ndarray: The embedding vectors.
         """
         logger.debug(f"Getting embedding for texts: {texts}")
-        model = model or self.model
-        if model is None:
-            raise ValueError("Model name must be provided.")
+        model = model or self.model or "text-embedding-004"
 
         batched_texts = [
             texts[i * self.max_elements_per_request : (i + 1) * self.max_elements_per_request]

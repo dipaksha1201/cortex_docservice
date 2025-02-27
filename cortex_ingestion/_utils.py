@@ -1,8 +1,10 @@
 import asyncio
 import logging
 import time
+import os
 from functools import wraps
 from typing import Any, Callable, List, Optional, Tuple, TypeVar, Union
+from pathlib import Path
 
 import numpy as np
 import numpy.typing as npt
@@ -10,7 +12,32 @@ from scipy.sparse import csr_matrix
 
 from cortex_ingestion._types import TIndex
 
+# Configure logging
 logger = logging.getLogger("graphrag")
+logger.setLevel(logging.INFO)
+
+# Get project root directory and create logs directory
+PROJECT_ROOT = Path(__file__).parent.parent
+LOGS_DIR = PROJECT_ROOT / "logs"
+LOGS_DIR.mkdir(exist_ok=True)
+
+# File handler
+file_handler = logging.FileHandler(LOGS_DIR / "graphrag.log")
+file_handler.setLevel(logging.INFO)
+
+# Console handler
+console_handler = logging.StreamHandler()
+console_handler.setLevel(logging.INFO)
+
+# Create formatter
+formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - [%(filename)s:%(lineno)d] - %(message)s')
+file_handler.setFormatter(formatter)
+console_handler.setFormatter(formatter)
+
+# Add handlers to logger
+logger.addHandler(file_handler)
+logger.addHandler(console_handler)
+
 TOKEN_TO_CHAR_RATIO = 4
 
 

@@ -9,7 +9,8 @@ from scipy.sparse import csr_matrix
 
 from cortex_ingestion._exceptions import InvalidStorageError
 from cortex_ingestion._types import GTEmbedding, GTId, TScore
-from cortex_ingestion._utils import logger, load_pickle, save_pickle
+from cortex_ingestion._utils import logger 
+from cortex_ingestion.utilities import load_pickle, save_pickle
 
 from cortex_ingestion._storage._base import BaseVectorStorage
 
@@ -121,34 +122,33 @@ class HNSWVectorStorage(BaseVectorStorage[GTId, GTEmbedding]):
 
         if self.namespace:
             index_file_name = self.namespace.get_load_path(self.RESOURCE_NAME.format(self.embedding_dim))
-            
-            # Try to load the index
-            if index_file_name:
+            metadata_file_name = self.namespace.get_load_path(self.RESOURCE_METADATA_NAME)
+
+            if index_file_name and metadata_file_name:
                 try:
                     self._index.load_index(index_file_name, allow_replace_deleted=True)
-                    
-                    # Load metadata
-                    self._metadata = load_pickle(self.namespace, self.RESOURCE_METADATA_NAME, {})
-                    logger.debug(f"Loaded {self.size} elements from vectordb storage '{index_file_name}'.")
+                    with open(metadata_file_name, "rb") as f:
+                        self._metadata = pickle.load(f)
+                    logger.debug(
+                        f"Loaded {self.size} elements from vectordb storage '{index_file_name}'."
+                    )
                     return  # All good
                 except Exception as e:
-                    t = f"Error loading index file for vectordb storage '{index_file_name}': {e}"
+                    t = f"Error loading metadata file for vectordb storage '{metadata_file_name}': {e}"
                     logger.error(t)
                     raise InvalidStorageError(t) from e
             else:
                 logger.info(f"No data file found for vectordb storage '{index_file_name}'. Loading empty vectordb.")
         else:
             logger.debug("Creating new volatile vectordb storage.")
-            
-            # Initialize a new index
-            self._index.init_index(
-                max_elements=self.INITIAL_MAX_ELEMENTS,
-                ef_construction=self.config.ef_construction,
-                M=self.config.M,
-                allow_replace_deleted=True
-            )
-            self._index.set_ef(self.config.ef_search)
-            self._metadata = {}
+        self._index.init_index(
+            max_elements=self.INITIAL_MAX_ELEMENTS,
+            ef_construction=self.config.ef_construction,
+            M=self.config.M,
+            allow_replace_deleted=True
+        )
+        self._index.set_ef(self.config.ef_search)
+        self._metadata = {}
 
     async def _insert_done(self):
         if self.namespace:

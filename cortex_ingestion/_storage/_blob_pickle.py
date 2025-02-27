@@ -4,7 +4,7 @@ from typing import Generic, Optional
 
 from cortex_ingestion._exceptions import InvalidStorageError
 from cortex_ingestion._types import GTBlob
-from cortex_ingestion._utils import logger, load_pickle, save_pickle
+from cortex_ingestion.utilities import load_pickle, save_pickle
 
 from cortex_ingestion._storage._base import BaseBlobStorage
 

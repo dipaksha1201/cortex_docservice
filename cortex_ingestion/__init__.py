@@ -6,8 +6,7 @@ from dataclasses import dataclass, field
 from typing import Type
 
 from cortex_ingestion._llm import DefaultEmbeddingService, DefaultLLMService
-from cortex_ingestion._llm._base import BaseEmbeddingService
-from cortex_ingestion._llm._llm_openai import BaseLLMService
+from cortex_ingestion._llm._base import BaseEmbeddingService, BaseLLMService
 from cortex_ingestion._policies._base import BaseGraphUpsertPolicy
 from cortex_ingestion._policies._graph_upsert import (
     DefaultGraphUpsertPolicy,

@@ -4,8 +4,7 @@ from dataclasses import dataclass, field
 from itertools import chain
 from typing import Counter, Dict, Iterable, List, Optional, Set, Tuple, Union
 
-from cortex_ingestion._llm._base import format_and_send_prompt
-from cortex_ingestion._llm._llm_openai import BaseLLMService
+from cortex_ingestion._llm._base import format_and_send_prompt , BaseLLMService
 from cortex_ingestion._models import TEditRelationList, TEntityDescription
 from cortex_ingestion._prompt import PROMPTS
 from cortex_ingestion._storage._base import BaseGraphStorage

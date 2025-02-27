@@ -3,7 +3,7 @@ from typing import Any, Generic, Iterable, Tuple, Type
 
 from scipy.sparse import csr_matrix
 
-from cortex_ingestion._llm._llm_openai import BaseLLMService
+from cortex_ingestion._llm import BaseLLMService
 from cortex_ingestion._storage._base import BaseGraphStorage
 from cortex_ingestion._types import GTEdge, GTId, GTNode, TIndex
 

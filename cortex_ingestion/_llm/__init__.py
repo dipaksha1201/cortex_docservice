@@ -4,10 +4,10 @@ __all__ = [
     "DefaultEmbeddingService",
     "DefaultLLMService",
     "format_and_send_prompt",
-    "OpenAIEmbeddingService",
-    "OpenAILLMService",
+    "GeminiEmbeddingService",
+    "GeminiLLMService",
 ]
 
 from cortex_ingestion._llm._base import BaseEmbeddingService, BaseLLMService, format_and_send_prompt
 from cortex_ingestion._llm._default import DefaultEmbeddingService, DefaultLLMService
-from cortex_ingestion._llm._llm_openai import OpenAIEmbeddingService, OpenAILLMService
+from cortex_ingestion._llm._llm_gemini import GeminiEmbeddingService, GeminiLLMService

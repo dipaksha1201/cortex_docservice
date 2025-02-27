@@ -1,9 +1,9 @@
 __all__ = ['DefaultLLMService', 'DefaultEmbeddingService']
 
-from cortex_ingestion._llm._llm_openai import OpenAIEmbeddingService, OpenAILLMService
+from cortex_ingestion._llm._llm_gemini import GeminiEmbeddingService, GeminiLLMService
 
 
-class DefaultLLMService(OpenAILLMService):
+class DefaultLLMService(GeminiLLMService):
     pass
-class DefaultEmbeddingService(OpenAIEmbeddingService):
+class DefaultEmbeddingService(GeminiEmbeddingService):
     pass
