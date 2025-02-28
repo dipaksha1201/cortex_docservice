@@ -15,26 +15,26 @@ class LLAMAPARSER:
     """
     
     @staticmethod
-    async def load_data(file):
-        logger.info(f"Uploading file {file.filename} to LlamaParse")
+    async def load_data(file_obj):
+        logger.info(f"Uploading file {file_obj['filename']} to LlamaParse")
         llama_url = "https://api.cloud.llamaindex.ai/api/parsing/upload"
         headers = {
             "Authorization": f"Bearer {os.getenv('LLAMAPARSER_API_KEY')}",
             "accept": "application/json",
         }
         files = {
-            "file": (file.filename, await file.read(), file.content_type),
+            "file": (file_obj['filename'], file_obj['content'], file_obj['content_type']),
             "result_type": "markdown"
         }
 
         async with httpx.AsyncClient() as client:
             try:
-                job_id = await LLAMAPARSER._upload_file(client, llama_url, headers, files, file.filename)
-                await LLAMAPARSER._poll_job(client, job_id, headers, file.filename)
-                parsed_content = await LLAMAPARSER._retrieve_result(client, job_id, headers, file.filename)
+                job_id = await LLAMAPARSER._upload_file(client, llama_url, headers, files, file_obj['filename'])
+                await LLAMAPARSER._poll_job(client, job_id, headers, file_obj['filename'])
+                parsed_content = await LLAMAPARSER._retrieve_result(client, job_id, headers, file_obj['filename'])
                 return {"message": "File processed successfully", "parsed_content": parsed_content}
             except Exception as e:
-                return LLAMAPARSER._handle_exception(e, file.filename)
+                return LLAMAPARSER._handle_exception(e, file_obj['filename'])
 
     @staticmethod
     async def _upload_file(client, url, headers, files, filename):
