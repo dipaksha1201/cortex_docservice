@@ -3,15 +3,7 @@ from typing import List
 from langchain_core.documents import Document
 from langchain_core.prompts import PromptTemplate
 from doc_extractor._utils import gemini_flash
-
-class DocumentFeatures(BaseModel):
-    summary: str = Field(description="A comprehensive summary of the document in 10-15 lines covering its core content and important sections.")
-    highlights: List[str] = Field(description="Five key highlights from the document.")
-    document_type: str = Field(description="A one-word descriptor indicating the type of document.")
-    domain: str = Field(description="Construct a 2-3 lines of domain text from the document. This will be used to understand the domain of the document.")
-    queries: List[str] = Field(description="A list of 5-10 example queries that are relevant to the document.")
-    entity_types: List[str] = Field(description="A list of entity types that are relevant to the document.")
-
+from doc_extractor.models import DocumentFeatures
 prompt_template = PromptTemplate(
     template="""You are an expert summarizer. Using the document below,
 please produce a structured output with the requested information.
