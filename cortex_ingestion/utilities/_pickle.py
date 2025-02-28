@@ -4,6 +4,7 @@ from typing import Any, Optional
 from cortex_ingestion._exceptions import InvalidStorageError
 from cortex_ingestion._storage._namespace import Namespace
 from cortex_ingestion._utils import logger
+from cortex_ingestion.cloud_services._googlecloud import download_pickle_from_gcs, upload_pickle_to_gcs
 
 
 def load_pickle(namespace: Namespace, resource_name: str, default: Any = None) -> Any:
@@ -28,10 +29,8 @@ def load_pickle(namespace: Namespace, resource_name: str, default: Any = None) -
         return default
     
     try:
-        with open(file_path, "rb") as f:
-            data = pickle.load(f)
-            logger.debug(f"Loaded pickle data from '{file_path}'")
-            return data
+        data = download_pickle_from_gcs(file_path)
+        return data
     except Exception as e:
         error_msg = f"Error loading pickle file {file_path}: {e}"
         logger.error(error_msg)
@@ -56,9 +55,8 @@ def save_pickle(namespace: Namespace, resource_name: str, data: Any) -> None:
     file_path = namespace.get_save_path(resource_name)
     
     try:
-        with open(file_path, "wb") as f:
-            pickle.dump(data, f)
-            logger.debug(f"Saved pickle data to '{file_path}'")
+        upload_pickle_to_gcs(file_path, data)
+        logger.debug(f"Saved pickle data to '{file_path}'")
     except Exception as e:
         error_msg = f"Error saving pickle file {file_path}: {e}"
         logger.error(error_msg)

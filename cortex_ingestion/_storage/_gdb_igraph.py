@@ -1,4 +1,5 @@
 import gzip
+import io
 import os
 from dataclasses import asdict, dataclass, field
 from typing import Any, Generic, Iterable, List, Mapping, Optional, Tuple, Type, Union
@@ -12,6 +13,7 @@ from cortex_ingestion._types import GTEdge, GTId, GTNode, TIndex
 from cortex_ingestion._utils import csr_from_indices_list, logger
 
 from cortex_ingestion._storage._base import BaseGraphStorage
+from cortex_ingestion.cloud_services._googlecloud import upload_graph_to_gcs, download_graph_to_gcs
 
 
 @dataclass
@@ -206,8 +208,10 @@ class IGraphStorage(BaseGraphStorage[GTNode, GTEdge, GTId]):
 
             if graph_file_name:
                 try:
-                    self._graph = ig.Graph.Read_Picklez(graph_file_name)  # type: ignore
+                    buffer = download_graph_to_gcs(graph_file_name)
+                    self._graph = ig.Graph.Read_Picklez(buffer)  
                     logger.debug(f"Loaded graph storage '{graph_file_name}'.")
+                    buffer.close()
                 except Exception as e:
                     t = f"Error loading graph from {graph_file_name}: {e}"
                     logger.error(t)
@@ -223,7 +227,18 @@ class IGraphStorage(BaseGraphStorage[GTNode, GTEdge, GTId]):
         if self.namespace:
             graph_file_name = self.namespace.get_save_path(self.RESOURCE_NAME)
             try:
-                ig.Graph.write_picklez(self._graph, graph_file_name)  # type: ignore
+                # Create an in-memory buffer
+                buffer = io.BytesIO()
+                
+                # Write the graph to the buffer instead of file
+                ig.Graph.write_picklez(self._graph, buffer)
+                
+                # Reset buffer position
+                buffer.seek(0)
+                
+                upload_graph_to_gcs(graph_file_name, buffer)
+                buffer.close()
+                
             except Exception as e:
                 t = f"Error saving graph to {graph_file_name}: {e}"
                 logger.error(t)
@@ -234,8 +249,10 @@ class IGraphStorage(BaseGraphStorage[GTNode, GTEdge, GTId]):
         graph_file_name = self.namespace.get_load_path(self.RESOURCE_NAME)
         if graph_file_name:
             try:
-                self._graph = ig.Graph.Read_Picklez(graph_file_name)  # type: ignore
+                buffer = download_graph_to_gcs(graph_file_name)
+                self._graph = ig.Graph.Read_Picklez(buffer)  
                 logger.debug(f"Loaded graph storage '{graph_file_name}'.")
+                buffer.close()
             except Exception as e:
                 t = f"Error loading graph from '{graph_file_name}': {e}"
                 logger.error(t)

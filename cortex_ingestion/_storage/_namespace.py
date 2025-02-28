@@ -5,7 +5,9 @@ from typing import Any, Callable, List, Optional
 
 from cortex_ingestion._exceptions import InvalidStorageError
 from cortex_ingestion._utils import logger
+from cortex_ingestion.cloud_services._googlecloud import blob_exists, delete_blob, list_blobs, rename_blob
 
+bucket_name = "cortex-knowledge-base-beta"
 
 class Workspace:
     @staticmethod
@@ -23,13 +25,24 @@ class Workspace:
     def __init__(self, working_dir: str, checkpoint: int = 0, keep_n: int = 0):
         self.working_dir: str = working_dir
         self.keep_n: int = keep_n
-        if not os.path.exists(working_dir):
-            os.makedirs(working_dir)
+        # if not os.path.exists(working_dir):
+        #     os.makedirs(working_dir)
+        
+        # self.checkpoints = sorted(
+        #     (int(x.name) for x in os.scandir(self.working_dir) if x.is_dir() and not x.name.startswith("0__err_")),
+        #     reverse=True,
+        # )
+        
+        if not blob_exists(working_dir, bucket_name):
+            self.checkpoints = []
+            logger.info(f"Blob does not exist in GCS bucket: {working_dir}")
+            # raise InvalidStorageError("Blob does not exist in GCS bucket.")
+        else:
+            self.checkpoints = sorted(
+                (int(x) for x in list_blobs(working_dir) if not x.startswith("0__err_")),
+                reverse=True,
+            )
 
-        self.checkpoints = sorted(
-            (int(x.name) for x in os.scandir(self.working_dir) if x.is_dir() and not x.name.startswith("0__err_")),
-            reverse=True,
-        )
         if self.checkpoints:
             self.current_load_checkpoint = checkpoint if checkpoint else self.checkpoints[0]
         else:
@@ -41,22 +54,21 @@ class Workspace:
         for checkpoint in self.failed_checkpoints:
             old_path = os.path.join(self.working_dir, checkpoint)
             new_path = os.path.join(self.working_dir, f"0__err_{checkpoint}")
-            os.rename(old_path, new_path)
+            rename_blob(old_path, new_path)
 
         if self.keep_n > 0:
-            checkpoints = sorted((x.name for x in os.scandir(self.working_dir) if x.is_dir()), reverse=True)
+            checkpoints = list_blobs(self.working_dir, bucket_name)
             for checkpoint in checkpoints[self.keep_n + 1 :]:
-                shutil.rmtree(os.path.join(self.working_dir, str(checkpoint)))
+                delete_blob(os.path.join(self.working_dir, str(checkpoint)))
 
     def make_for(self, namespace: str) -> "Namespace":
         return Namespace(self, namespace)
 
     def get_load_path(self) -> Optional[str]:
         load_path = self.get_path(self.working_dir, self.current_load_checkpoint)
-        if load_path == self.working_dir and len([x for x in os.scandir(load_path) if x.is_file()]) == 0:
+        if load_path == self.working_dir and len(list_blobs(load_path, bucket_name)) == 0:
             return None
         return load_path
-
 
     def get_save_path(self) -> str:
         if self.save_checkpoint is None:
@@ -68,9 +80,7 @@ class Workspace:
 
         assert save_path is not None, "Save path cannot be None."
 
-        if not os.path.exists(save_path):
-            os.makedirs(save_path)
-        return os.path.join(save_path)
+        return save_path
 
     def _rollback(self) -> bool:
         if self.current_load_checkpoint is None:

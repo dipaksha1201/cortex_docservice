@@ -10,6 +10,7 @@ from cortex_ingestion._types import GTKey, GTValue, TIndex
 from cortex_ingestion._utils import logger
 
 from cortex_ingestion._storage._base import BaseIndexedKeyValueStorage
+from cortex_ingestion.cloud_services._googlecloud import download_pickle_from_gcs, upload_pickle_to_gcs
 
 
 @dataclass
@@ -80,11 +81,10 @@ class PickleIndexedKeyValueStorage(BaseIndexedKeyValueStorage[GTKey, GTValue]):
 
             if data_file_name:
                 try:
-                    with open(data_file_name, "rb") as f:
-                        self._data, self._free_indices, self._key_to_index = pickle.load(f)
-                        logger.debug(
-                            f"Loaded {len(self._data)} elements from indexed key-value storage '{data_file_name}'."
-                        )
+                    self._data, self._free_indices, self._key_to_index = download_pickle_from_gcs(data_file_name)
+                    logger.debug(
+                        f"Loaded {len(self._data)} elements from indexed key-value storage '{data_file_name}'."
+                    )
                 except Exception as e:
                     t = f"Error loading data file for key-vector storage '{data_file_name}': {e}"
                     logger.error(t)
@@ -105,9 +105,8 @@ class PickleIndexedKeyValueStorage(BaseIndexedKeyValueStorage[GTKey, GTValue]):
         if self.namespace:
             data_file_name = self.namespace.get_save_path(self.RESOURCE_NAME)
             try:
-                with open(data_file_name, "wb") as f:
-                    pickle.dump((self._data, self._free_indices, self._key_to_index), f)
-                    logger.debug(f"Saving {len(self._data)} elements to indexed key-value storage '{data_file_name}'.")
+                upload_pickle_to_gcs(data_file_name, (self._data, self._free_indices, self._key_to_index))
+                logger.debug(f"Saving {len(self._data)} elements to indexed key-value storage '{data_file_name}'.")
             except Exception as e:
                 t = f"Error saving data file for key-vector storage '{data_file_name}': {e}"
                 logger.error(t)
@@ -118,11 +117,10 @@ class PickleIndexedKeyValueStorage(BaseIndexedKeyValueStorage[GTKey, GTValue]):
         data_file_name = self.namespace.get_load_path(self.RESOURCE_NAME)
         if data_file_name:
             try:
-                with open(data_file_name, "rb") as f:
-                    self._data, self._free_indices, self._key_to_index = pickle.load(f)
-                    logger.debug(
-                        f"Loaded {len(self._data)} elements from indexed key-value storage '{data_file_name}'."
-                    )
+                self._data, self._free_indices, self._key_to_index = download_pickle_from_gcs(data_file_name)
+                logger.debug(
+                    f"Loaded {len(self._data)} elements from indexed key-value storage '{data_file_name}'."
+                )
             except Exception as e:
                 t = f"Error loading data file for key-vector storage {data_file_name}: {e}"
                 logger.error(t)

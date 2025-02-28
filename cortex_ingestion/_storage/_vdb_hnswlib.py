@@ -1,6 +1,7 @@
 import pickle
 from dataclasses import dataclass, field
 from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
+import io
 
 import hnswlib
 import numpy as np
@@ -10,6 +11,7 @@ from scipy.sparse import csr_matrix
 from cortex_ingestion._exceptions import InvalidStorageError
 from cortex_ingestion._types import GTEmbedding, GTId, TScore
 from cortex_ingestion._utils import logger 
+from cortex_ingestion.cloud_services._googlecloud import download_pickle_from_gcs, download_graph_to_gcs, upload_graph_to_gcs, upload_pickle_to_gcs
 from cortex_ingestion.utilities import load_pickle, save_pickle
 
 from cortex_ingestion._storage._base import BaseVectorStorage
@@ -126,10 +128,23 @@ class HNSWVectorStorage(BaseVectorStorage[GTId, GTEmbedding]):
 
             if index_file_name and metadata_file_name:
                 try:
-                    self._index.load_index(index_file_name, allow_replace_deleted=True)
-                    with open(metadata_file_name, "rb") as f:
-                        self._metadata = pickle.load(f)
-                    logger.debug(
+                    # Download index from GCS to a temporary file
+                    temp_file = "/tmp/temp_index.bin"
+                    buffer = download_graph_to_gcs(index_file_name)
+                    with open(temp_file, 'wb') as f:
+                        f.write(buffer.getvalue())
+                    
+                    # Load from temp file
+                    self._index.load_index(temp_file, allow_replace_deleted=True)
+                    
+                    # Clean up temp file
+                    import os
+                    os.remove(temp_file)
+                    
+                    logger.info(f"Loading metadata from {metadata_file_name}")
+                    self._metadata = download_pickle_from_gcs(metadata_file_name)
+                    
+                    logger.info(
                         f"Loaded {self.size} elements from vectordb storage '{index_file_name}'."
                     )
                     return  # All good
@@ -155,8 +170,19 @@ class HNSWVectorStorage(BaseVectorStorage[GTId, GTEmbedding]):
             index_file_name = self.namespace.get_save_path(self.RESOURCE_NAME.format(self.embedding_dim))
             
             try:
-                # Save the index
-                self._index.save_index(index_file_name)
+                # Save index to a temporary file first
+                temp_file = "/tmp/temp_index.bin"
+                self._index.save_index(temp_file)
+                
+                # Read the temp file into a buffer and upload to GCS
+                with open(temp_file, 'rb') as f:
+                    buffer = io.BytesIO(f.read())
+                    buffer.seek(0)
+                    upload_graph_to_gcs(index_file_name, buffer)
+                
+                # Clean up temp file
+                import os
+                os.remove(temp_file)
                 
                 # Save metadata
                 save_pickle(self.namespace, self.RESOURCE_METADATA_NAME, self._metadata)
@@ -176,7 +202,18 @@ class HNSWVectorStorage(BaseVectorStorage[GTId, GTEmbedding]):
         # Try to load the index
         if index_file_name:
             try:
-                self._index.load_index(index_file_name, allow_replace_deleted=True)
+                # Download index from GCS to a temporary file
+                temp_file = "/tmp/temp_index.bin"
+                buffer = download_graph_to_gcs(index_file_name)
+                with open(temp_file, 'wb') as f:
+                    f.write(buffer.getvalue())
+                
+                # Load from temp file
+                self._index.load_index(temp_file, allow_replace_deleted=True)
+                
+                # Clean up temp file
+                import os
+                os.remove(temp_file)
                 
                 # Load metadata
                 self._metadata = load_pickle(self.namespace, self.RESOURCE_METADATA_NAME, {})

@@ -34,3 +34,4 @@ run.py
 *.pkl
 *.bin 
 *.pklz
+cortex_ingestion/cloud_services/cortex-service-key.json
