@@ -28,7 +28,7 @@ build/
 # Ignore specific files
 *.pvc
 run.py
-*.txt
+mock_data.txt
 
 # Ignore data files
 *.pkl
@@ -43,3 +43,4 @@ config/*.env
 
 # Environment-specific logs
 logs/app_*.log
+Dockerfile
