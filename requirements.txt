@@ -1,0 +1,28 @@
+# Core dependencies
+numpy>=1.26.4,<2.0.0  # Fixed version for langchain compatibility
+scipy>=1.7.0
+pydantic>=2.0.0
+pydantic-settings>=2.0.0  # For environment configuration
+xxhash>=3.0.0
+hnswlib>=0.7.0,<0.8.0  # Pinned to avoid numpy conflicts
+igraph>=0.10.0
+tenacity>=8.0.0
+python-dotenv>=1.0.0
+langchain==0.3.19  # Pinned version
+langchain-core>=0.3.40
+langchain-google-genai>=2.0.0
+
+# FastAPI for API server
+fastapi>=0.95.0
+uvicorn>=0.22.0
+python-multipart>=0.0.6
+
+# OpenAI integration
+openai>=1.0.0
+instructor>=0.3.0
+
+# Cloud integrations
+pinecone-client>=2.2.1  # Vector database
+pymongo>=4.3.3          # Document database
+dnspython>=2.3.0        # For MongoDB SRV connection strings
+google-cloud-storage>=2.14.0  # Google Cloud Storage client
