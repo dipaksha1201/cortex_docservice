@@ -1,10 +1,12 @@
 from fastapi import APIRouter, HTTPException, UploadFile, File
+from fastapi.encoders import jsonable_encoder
 from fastapi.responses import StreamingResponse
 import logging
 import json
 from typing import Union, List
 from pydantic import BaseModel
 
+from doc_extractor.doc_service import DocumentService
 from interactor.indexer import index_file as index_file_interactor
 from interactor.retriever import query_file as query_file_interactor
 # Configure logging
@@ -63,3 +65,17 @@ async def query_file(
             yield json.dumps(status) + "\n"
     
     return StreamingResponse(query_stream(), media_type="application/x-ndjson")
+
+@api_router.get("/documents/all")
+async def get_all_documents(user_id: str):
+    try:
+        logger.info("Retrieving all documents")
+        service = DocumentService()
+        documents = service.get_user_documents(user_id=user_id)
+        return jsonable_encoder(documents)
+    except Exception as e:
+        logger.error(f"Error retrieving documents: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error retrieving documents: {str(e)}"
+        )

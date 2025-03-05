@@ -35,3 +35,11 @@ run.py
 *.bin 
 *.pklz
 cortex_ingestion/cloud_services/cortex-service-key.json
+
+# Environment files
+.env
+config/*.env
+!config/example.env
+
+# Environment-specific logs
+logs/app_*.log

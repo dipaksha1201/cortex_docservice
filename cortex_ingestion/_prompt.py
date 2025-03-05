@@ -147,7 +147,7 @@ Follow these steps:
 2. Look at the "Entities" and "Relationships" tables to get a general sense of the data and understand which information is the most relevant to answer the query.
 3. Carefully analyze all the "Sources" to get more detailed information. Information could be scattered across several sources, use the identified relevant entities and relationships to guide yourself through the analysis of the sources.
 4. While you write the response, you must include inline references to the all the sources you are using by appending `[<source_id>]` at the end of each sentence, where `source_id` is the corresponding source ID from the "Sources" list.
-5. Write the response to the user query - which must include the inline references - based on the information you have gathered. Be very concise and answer the user query directly. If the response cannot be inferred from the input data, just say no relevant information was found. Do not make anything up or add unrelevant information.
+5. Write the response to the user query - which must include the inline references - based on the information you have gathered. Be very detailed and mention why you are using the sources you are using and answer the user query directly. If the response cannot be inferred from the input data, just say no relevant information was found. Do not make anything up or add unrelevant information.
 
 Answer:
 """
@@ -166,10 +166,13 @@ Your goal is to provide a response to the user query using the relevant informat
 - the "Sources" list contains raw text sources to help answer the query. It may contain noisy data, so pay attention when analyzing it.
 
 Follow these steps:
-1. Read and understand the user query.
+1. Read and understand the user query and its core intent.
 2. Look at the "Entities" and "Relationships" tables to get a general sense of the data and understand which information is the most relevant to answer the query.
 3. Carefully analyze all the "Sources" to get more detailed information. Information could be scattered across several sources, use the identified relevant entities and relationships to guide yourself through the analysis of the sources.
-4. Write the response to the user query based on the information you have gathered. Be very concise and answer the user query directly. If the response cannot be inferred from the input data, just say no relevant information was found. Do not make anything up or add unrelevant information.
+4. Write the response to the user query based on the information you have gathered.Provide an in-depth and structured answer to the query. If the response cannot be inferred from the input data, just say no relevant information was found. Do not make anything up or add unrelevant information.
+5. Keep the response very detailed and explanatory.
+6. Include as much relevant information as possible in the response to build a richer context for the user query.
+7. Come up with analytical insights from the information you have gathered. And how these insights can be used to answer the user query.
 
 Answer:
 """

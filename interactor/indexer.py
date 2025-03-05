@@ -9,7 +9,7 @@ from doc_extractor.models import Document
 async def index_file(file_obj: Dict[str, Any], user_name: str) -> AsyncGenerator[Dict[str, Any], None]:
     doc_extractor = DocExtractor()
     
-    yield {"status": "extracting", "message": "Extracting document features and content..."}
+    yield {"status": "Extracting", "message": "Extracting document features and content..."}
     features, parsed_text = await doc_extractor.extract(file_obj)
     document = Document.from_features(features, user_name, file_obj["filename"], "extracted")
     doc_service = DocumentService()
@@ -22,8 +22,8 @@ async def index_file(file_obj: Dict[str, Any], user_name: str) -> AsyncGenerator
                 entity_types=features.entity_types,
             )
     
-    yield {"status": "understanding", "message": "Understanding document structure..."}
+    yield {"status": "Understanding", "message": "Understanding document structure..."}
     await ingestion.async_insert(parsed_text)
     doc_service.update_status(document.id, "completed")
     
-    yield {"status": "completed", "message": "Document indexed successfully", "features": features.dict()}
+    yield {"status": "Completed", "message": "Document indexed successfully", "features": features.dict()}
