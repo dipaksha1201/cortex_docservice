@@ -41,3 +41,20 @@ class DocumentService:
         conversations = [Document(**doc) for doc in documents]
         logger.info("Found %d conversations for user '%s'", len(conversations), user_id)
         return conversations
+
+    def get_document_by_id(self, document_id: str) -> Document:
+        """Retrieve a document by its ID."""
+        logger.info("Retrieving document with id: %s", document_id)
+        result = self.db["documents"].find_one({"_id": ObjectId(document_id)})
+        if not result:
+            raise ValueError(f"Document with id {document_id} not found")
+        return Document(**result)
+
+    def delete_document_by_id(self, document_id: str) -> bool:
+        """Delete a document by its ID."""
+        logger.info("Deleting document with id: %s", document_id)
+        result = self.db["documents"].delete_one({"_id": ObjectId(document_id)})
+        if result.deleted_count == 0:
+            raise ValueError(f"Document with id {document_id} not found")
+        logger.info("Document with id %s deleted successfully", document_id)
+        return True

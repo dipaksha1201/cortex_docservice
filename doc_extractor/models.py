@@ -10,6 +10,9 @@ class DocumentFeatures(BaseModel):
     queries: List[str] = Field(description="A list of 5-10 example queries that are relevant to the document.")
     entity_types: List[str] = Field(description="A list of entity types that are relevant to the document.")
 
+class DocumentDescription(BaseModel):
+    description: List[str] = Field(description="""Generate a description of document which give an idea of what are the various sections in the document and what is it that the document discusses in brief, walkthrough the document in your comprehensive description. this description will be later on used by you to decide whcih document the user is talking about.""")
+    
 class Document(DocumentFeatures):
     id: ObjectId = Field(None, alias="_id")
     user_id: str
@@ -17,9 +20,9 @@ class Document(DocumentFeatures):
     status: Literal["extracted", "completed"] = Field(default="extracted")
     
     @classmethod
-    def from_features(cls, features: DocumentFeatures, user_id: str, name: str, status: Literal["extracted", "completed"], id: ObjectId = None) -> "Document":
+    def from_features(cls, features: dict, user_id: str, name: str, status: Literal["extracted", "completed"], id: ObjectId = None) -> "Document":
         return cls(
-            **features.model_dump(),
+            **features,
             user_id=user_id,
             name=name,
             status=status,

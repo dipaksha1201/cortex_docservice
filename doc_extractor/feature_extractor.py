@@ -3,7 +3,43 @@ from typing import List
 from langchain_core.documents import Document
 from langchain_core.prompts import PromptTemplate
 from doc_extractor._utils import gemini_flash
-from doc_extractor.models import DocumentFeatures
+from doc_extractor.models import DocumentFeatures, DocumentDescription
+
+from google import genai
+from google.genai import types
+import os
+
+def generate_document_description(file_obj):
+    
+    if file_obj['content_type'] == 'application/pdf':
+        client = genai.Client(api_key=os.getenv('GEMINI_API_KEY_BETA'))
+
+        prompt = """
+        Generate a description of document which give an idea of what are the various sections in the document and what is it that the document 
+        discusses in brief, walkthrough the document in your comprehensive description. this description will be later on used by you to decide
+        whcih document the user is talking about. Give the output only as text and do not include any extra text.
+
+        ###Description###
+        """
+        response = client.models.generate_content(
+        model="gemini-2.0-flash-thinking-exp",
+        contents=[
+            types.Part.from_bytes(
+                data=file_obj['content'],
+                mime_type='application/pdf',
+            ),
+            prompt],)
+        return response.text
+    else:
+        extracted_text = "\n".join([doc.page_content for doc in file_obj['extracted_text']])
+        template = PromptTemplate(template="""Generate a description of document which give an idea of what are the various sections in the document and what is it that the document discusses in brief, walkthrough the document in your comprehensive description. this description will be later on used by you to decide whcih document the user is talking about. Give the output only as text and do not include any extra text.
+        ###Document###
+        {document}
+        
+        ###Description###""")
+        response = gemini_flash.invoke(template.format(document=extracted_text))
+        return response.content
+
 prompt_template = PromptTemplate(
     template="""You are an expert summarizer. Using the document below,
 please produce a structured output with the requested information.
@@ -32,3 +68,5 @@ def generate_document_features(documents: List[Document], llm: any = gemini_flas
     formatted_prompt = prompt_template.format(combined_text=combined_text)
     response = model.invoke(formatted_prompt)
     return response
+
+

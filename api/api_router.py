@@ -6,6 +6,7 @@ import json
 from typing import Union, List
 from pydantic import BaseModel
 
+from api.pinecone import delete_document
 from doc_extractor.doc_service import DocumentService
 from interactor.indexer import index_file as index_file_interactor
 from interactor.retriever import query_file as query_file_interactor
@@ -31,7 +32,7 @@ async def index_file(
         file: The file to be indexed
     """
     # Read file content immediately to prevent file handle issues
-    file_content = await file.read()
+    file_content = await file.read()   
     
     async def status_stream():
         try:
@@ -60,8 +61,8 @@ async def query_file(
             - user_name: Name of the user
             - queries: Single query string or list of query strings
     """
-    async def query_stream():
-        async for status in query_file_interactor(request.user_name, request.queries):
+    def query_stream():
+        for status in query_file_interactor(request.user_name, request.queries):
             yield json.dumps(status) + "\n"
     
     return StreamingResponse(query_stream(), media_type="application/x-ndjson")
@@ -78,4 +79,20 @@ async def get_all_documents(user_id: str):
         raise HTTPException(
             status_code=500,
             detail=f"Error retrieving documents: {str(e)}"
+        )
+        
+@api_router.delete("/document/{document_id}")
+async def delete_document_by_id(user_id: str, document_id: str):
+    try:
+        logger.info(f"Deleting document with ID: {document_id}")
+        service = DocumentService()
+        document = service.get_document_by_id(document_id)
+        delete_document(user_id, document.document_ids)
+        service.delete_document_by_id(document_id)
+        return {"message": "Document deleted successfully"}
+    except Exception as e:
+        logger.error(f"Error deleting document: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error deleting document: {str(e)}"
         )

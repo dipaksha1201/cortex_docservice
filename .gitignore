@@ -43,3 +43,4 @@ config/*.env
 
 # Environment-specific logs
 logs/app_*.log
+Dockerfile
