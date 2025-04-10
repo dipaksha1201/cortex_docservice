@@ -17,11 +17,13 @@ api_router = APIRouter()
 
 class QueryRequest(BaseModel):
     user_name: str
+    project_id: str
     queries: Union[str, List[str]]
 
 @api_router.post("/index")
 async def index_file(
     user_name: str,
+    project_id: str,
     file: UploadFile = File(...)
 ):
     """
@@ -29,6 +31,7 @@ async def index_file(
     
     Args:
         user_name: Name of the user (required)
+        project_id: ID of the project (required)
         file: The file to be indexed
     """
     # Read file content immediately to prevent file handle issues
@@ -41,7 +44,7 @@ async def index_file(
                 "content": file_content,
                 "content_type": file.content_type
             }
-            async for status in index_file_interactor(file_obj, user_name):
+            async for status in index_file_interactor(file_obj, user_name, project_id):
                 yield json.dumps(status) + "\n"
         except Exception as e:
             logger.error(f"Failed to index file: {e}")
@@ -59,35 +62,36 @@ async def query_file(
     Args:
         request: QueryRequest containing:
             - user_name: Name of the user
+            - project_id: ID of the project
             - queries: Single query string or list of query strings
     """
     def query_stream():
-        for status in query_file_interactor(request.user_name, request.queries):
+        for status in query_file_interactor(user_name=request.user_name, query=request.queries, project_id=request.project_id):
             yield json.dumps(status) + "\n"
     
     return StreamingResponse(query_stream(), media_type="application/x-ndjson")
 
-@api_router.get("/documents/all")
-async def get_all_documents(user_id: str):
-    try:
-        logger.info("Retrieving all documents")
-        service = DocumentService()
-        documents = service.get_user_documents(user_id=user_id)
-        return jsonable_encoder(documents)
-    except Exception as e:
-        logger.error(f"Error retrieving documents: {e}")
-        raise HTTPException(
-            status_code=500,
-            detail=f"Error retrieving documents: {str(e)}"
-        )
+# @api_router.get("/documents/all")
+# async def get_all_documents(user_id: str):
+#     try:
+#         logger.info("Retrieving all documents")
+#         service = DocumentService()
+#         documents = service.get_user_documents(user_id=user_id)
+#         return jsonable_encoder(documents)
+#     except Exception as e:
+#         logger.error(f"Error retrieving documents: {e}")
+#         raise HTTPException(
+#             status_code=500,
+#             detail=f"Error retrieving documents: {str(e)}"
+#         )
         
 @api_router.delete("/document/{document_id}")
-async def delete_document_by_id(user_id: str, document_id: str):
+async def delete_document_by_id(user_id: str, project_id: str, document_id: str):
     try:
         logger.info(f"Deleting document with ID: {document_id}")
         service = DocumentService()
         document = service.get_document_by_id(document_id)
-        delete_document(user_id, document.document_ids)
+        delete_document(user_id, project_id, document.document_ids)
         service.delete_document_by_id(document_id)
         return {"message": "Document deleted successfully"}
     except Exception as e:

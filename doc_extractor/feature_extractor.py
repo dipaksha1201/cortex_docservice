@@ -15,6 +15,11 @@ def generate_document_description(file_obj):
         client = genai.Client(api_key=os.getenv('GEMINI_API_KEY_BETA'))
 
         prompt = """
+        Act as a PhD-level scientist, demonstrating rigorous analytical thinking, precision, and thoroughness in your approach. 
+Your queries should reflect deep academic insight, mastery of foundational principles, and meticulous attention to detail. 
+Ensure your approach is methodical and scholarly, designed to uncover nuanced insights, verify assumptions, and uphold 
+academic standards of research quality.
+
         Generate a description of document which give an idea of what are the various sections in the document and what is it that the document 
         discusses in brief, walkthrough the document in your comprehensive description. this description will be later on used by you to decide
         whcih document the user is talking about. Give the output only as text and do not include any extra text.
@@ -41,12 +46,17 @@ def generate_document_description(file_obj):
         return response.content
 
 prompt_template = PromptTemplate(
-    template="""You are an expert summarizer. Using the document below,
-please produce a structured output with the requested information.
+    template="""
+    Act as a PhD-level scientist, demonstrating rigorous analytical thinking, precision, and thoroughness in your approach. 
+    Your queries should reflect deep academic insight, mastery of foundational principles, and meticulous attention to detail. 
+    Ensure your approach is methodical and scholarly, designed to uncover nuanced insights, verify assumptions, and uphold 
+    academic standards of research quality.
 
-Document:
-{combined_text}
-""",
+    Look for actionable insights, key findings, and practical recommendations in the document.
+
+    ###Document###
+    {combined_text}
+    """,
     input_variables=["combined_text"]
 )
 

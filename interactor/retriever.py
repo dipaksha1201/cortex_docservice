@@ -47,7 +47,7 @@ def concatenate_all_documents(document_dict):
     combined_document = ' '.join(document_dict.values())
     return combined_document
 
-def query_file(user_name: str, query: Union[str, List[str]]):
+def query_file(user_name: str, project_id: str, query: Union[str, List[str]]):
     # Use the same working_dir as used in indexing
     # Convert single query to list for uniform handling
     queries = [query] if isinstance(query, str) else query
@@ -60,8 +60,9 @@ def query_file(user_name: str, query: Union[str, List[str]]):
                 "type": "processing",
                 "query": q
             }
-            retrieved_documents = retrieve_documents(user_name, q)
+            retrieved_documents = retrieve_documents(user_name, project_id, q)
             document_dict = store_documents_as_key_value(retrieved_documents)
+            print(document_dict)
             document_dict = append_metadata_to_documents(document_dict, docservice)
             combined_document = concatenate_all_documents(document_dict)
             prompt = PromptTemplate.from_template(COMPOSER_PROMPT)

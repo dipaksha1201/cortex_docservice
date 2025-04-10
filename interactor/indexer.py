@@ -7,7 +7,7 @@ from doc_extractor.feature_extractor import generate_document_description, gener
 from doc_extractor.models import Document
 
 
-async def index_file(file_obj: Dict[str, Any], user_name: str) -> AsyncGenerator[Dict[str, Any], None]:
+async def index_file(file_obj: Dict[str, Any], user_name: str, project_id: str) -> AsyncGenerator[Dict[str, Any], None]:
     doc_extractor = DocExtractor()
     vector_document_ids = []
     yield {"status": "Reading", "message": "Reading document..."}
@@ -25,11 +25,11 @@ async def index_file(file_obj: Dict[str, Any], user_name: str) -> AsyncGenerator
         vector_document_ids.append(doc_id)
         
     features["document_ids"] = vector_document_ids
-    document = Document.from_features(features, user_name, file_obj["filename"], "extracted")
+    document = Document.from_features(features, user_name, project_id, file_obj["filename"], "extracted")
     doc_service = DocumentService()
     doc_service.insert_document(document)
     
-    index_documents(user_name, document.id, chunks)    
+    index_documents(user_name, project_id, document.id, chunks)    
     doc_service.update_status(document.id, "completed")
     
     yield {"status": "Completed", "message": "Document indexed successfully", "features": features}

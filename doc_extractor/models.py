@@ -16,14 +16,16 @@ class DocumentDescription(BaseModel):
 class Document(DocumentFeatures):
     id: ObjectId = Field(None, alias="_id")
     user_id: str
+    project_id: str
     name: str
     status: Literal["extracted", "completed"] = Field(default="extracted")
     
     @classmethod
-    def from_features(cls, features: dict, user_id: str, name: str, status: Literal["extracted", "completed"], id: ObjectId = None) -> "Document":
+    def from_features(cls, features: dict, user_id: str, project_id: str, name: str, status: Literal["extracted", "completed"], id: ObjectId = None) -> "Document":
         return cls(
             **features,
             user_id=user_id,
+            project_id=project_id,
             name=name,
             status=status,
             id=id
